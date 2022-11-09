@@ -1,5 +1,4 @@
 import datetime
-import sys
 import time
 
 import bs4
@@ -34,12 +33,26 @@ def find_all(tag, name, class_=None):
     return tag.find_all(name, class_=class_, recursive=False)
 
 
-def get_li_list():
+def get_sub_cont():
     soup = bs4.BeautifulSoup(requests.get(URL).text, "html.parser")
     container = find(soup.body, "div", "container sub_bg")
     sub_contents = find(container, "div", "sub_contents")
     inner = find(sub_contents, "div", "inner")
     sub_cont = find(inner, "div", "sub_cont cafeteria")
+
+    return sub_cont
+
+
+def get_date(sub_cont):
+    change_week = find(sub_cont, "div", "change_week")
+    week = find(change_week, "div", "week")
+    first_day = find(week, "span", "first_day")
+    date = first_day.string.strip()
+
+    return date
+
+
+def get_li_list(sub_cont):
     menu = find(sub_cont, "ul", "menu clearFix")
     li_list = find_all(menu, "li")
 
@@ -81,43 +94,58 @@ def get_text(list_wrap):
     return text
 
 
-def tweet_lunch_menu():
-    li_list = get_li_list()
+def send_tweet(text, tweet_id=None):
+    lines = text.strip().splitlines()
+    count = 0
+    real_text = ""
 
-    tweet_id = -1
+    for line in lines:
+        line_count = 1
 
-    for li in li_list:
-        list_wrap = find(li, "div", "list_wrap")
-        menu = get_menu(list_wrap)
+        for character in line:
+            if character.isascii():
+                line_count += 1
+            else:
+                line_count += 2
 
-        if menu == "Dinner":
-            continue
+        count += line_count
 
-        text = menu + "\n" + get_text(list_wrap)
+        if count > 280:
+            response = CLIENT.create_tweet(text=real_text, in_reply_to_tweet_id=tweet_id)
 
-        if menu == "Lunch":
-            response = CLIENT.create_tweet(text=text)
+            count = line_count
+            real_text = ""
             tweet_id = response.data["id"]
-        else:
-            CLIENT.create_tweet(text=text, in_reply_to_tweet_id=tweet_id)
+
+        real_text += line + "\n"
+
+    response = CLIENT.create_tweet(text=real_text, in_reply_to_tweet_id=tweet_id)
+    tweet_id = response.data["id"]
+
+    return tweet_id
 
 
-def tweet_dinner_menu():
-    li_list = get_li_list()
+def tweet_menu(dinner):
+    sub_cont = get_sub_cont()
+    date = get_date(sub_cont)
+    li_list = get_li_list(sub_cont)
+
+    tweet_id = None
 
     for li in li_list:
         list_wrap = find(li, "div", "list_wrap")
         menu = get_menu(list_wrap)
 
-        if menu != "Dinner":
+        if (menu != "Dinner") is dinner:
             continue
 
-        text = menu + "\n" + get_text(list_wrap)
-        CLIENT.create_tweet(text=text)
+        text = date + "\n" + menu + "\n" + get_text(list_wrap)
+        tweet_id = send_tweet(text, tweet_id)
 
 
 def main():
     tweet = True
+    tweet_error = True
 
     while True:
         # noinspection PyBroadException
@@ -135,18 +163,22 @@ def main():
                     continue
 
                 tweet = False
-                tweet_lunch_menu()
+                tweet_menu(False)
             elif hour == 17:
                 if not tweet:
                     continue
 
                 tweet = False
-                tweet_dinner_menu()
+                tweet_menu(True)
             else:
                 tweet = True
+                continue
+
+            tweet_error = True
         except Exception:
-            CLIENT.create_tweet(text="An error occurred. Please fix me :(")
-            sys.exit(-1)
+            if tweet_error:
+                tweet_error = False
+                CLIENT.create_tweet(text="An error occurred. Please fix me :(")
 
 
 if __name__ == "__main__":
