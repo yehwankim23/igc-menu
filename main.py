@@ -59,19 +59,26 @@ def get_li_list(sub_cont):
     return li_list
 
 
-def get_menu(list_wrap):
+def get_menu_time(list_wrap):
     title = find(list_wrap, "div", "title")
-    name = find(title, "div", "name")
-    cell = find(name, "div", "cell")
-    menu = cell.string.strip()
+    time_ = find(title, "div", "time")
+    cell = find(time_, "div", "cell")
+    dl = find(cell, "dl")
+    dd = find(dl, "dd")
+    menu_time = dd.string.strip()
 
-    return menu
+    return menu_time
 
 
 def get_text(list_wrap):
     text = ""
 
     title = find(list_wrap, "div", "title")
+
+    name = find(title, "div", "name")
+    cell = find(name, "div", "cell")
+    text += cell.string.strip() + "\n"
+
     time_ = find(title, "div", "time")
     cell = find(time_, "div", "cell")
     dl_list = find_all(cell, "dl")
@@ -125,7 +132,7 @@ def send_tweet(text, tweet_id=None):
     return tweet_id
 
 
-def tweet_menu(dinner):
+def tweet_menu(minute):
     sub_cont = get_sub_cont()
     date = get_date(sub_cont)
     li_list = get_li_list(sub_cont)
@@ -134,13 +141,11 @@ def tweet_menu(dinner):
 
     for li in li_list:
         list_wrap = find(li, "div", "list_wrap")
-        menu = get_menu(list_wrap)
+        menu_time = get_menu_time(list_wrap).split("~")[0].split(":")
 
-        if (menu != "Dinner") is dinner:
-            continue
-
-        text = date + "\n" + menu + "\n" + get_text(list_wrap)
-        tweet_id = send_tweet(text, tweet_id)
+        if (int(menu_time[0]) * 60 + int(menu_time[1])) - minute <= 30:
+            text = date + "\n" + get_text(list_wrap)
+            tweet_id = send_tweet(text, tweet_id)
 
 
 def main():
@@ -152,27 +157,17 @@ def main():
         try:
             time.sleep(30)
             now = datetime.datetime.now()
+            minute = now.minute
 
-            if now.minute != 0:
-                continue
-
-            hour = now.hour
-
-            if hour == 11:
-                if not tweet:
-                    continue
-
-                tweet = False
-                tweet_menu(False)
-            elif hour == 17:
-                if not tweet:
-                    continue
-
-                tweet = False
-                tweet_menu(True)
-            else:
+            if minute % 30 != 0:
                 tweet = True
                 continue
+
+            if not tweet:
+                continue
+
+            tweet = False
+            tweet_menu(now.hour * 60 + minute)
 
             tweet_error = True
         except Exception:
