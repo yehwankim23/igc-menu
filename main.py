@@ -54,6 +54,10 @@ def get_date(sub_cont):
 
 def get_li_list(sub_cont):
     menu = find(sub_cont, "ul", "menu clearFix")
+
+    if menu is None:
+        return None
+
     li_list = find_all(menu, "li")
 
     return li_list
@@ -137,6 +141,9 @@ def tweet_menu(minute):
     sub_cont = get_sub_cont()
     date = get_date(sub_cont)
     li_list = get_li_list(sub_cont)
+
+    if li_list is None:
+        return
 
     tweet_id = None
 
