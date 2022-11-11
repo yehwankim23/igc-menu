@@ -126,8 +126,9 @@ def send_tweet(text, tweet_id=None):
 
         real_text += line + "\n"
 
-    response = CLIENT.create_tweet(text=real_text, in_reply_to_tweet_id=tweet_id)
-    tweet_id = response.data["id"]
+    if real_text != "":
+        response = CLIENT.create_tweet(text=real_text, in_reply_to_tweet_id=tweet_id)
+        tweet_id = response.data["id"]
 
     return tweet_id
 
@@ -143,7 +144,7 @@ def tweet_menu(minute):
         list_wrap = find(li, "div", "list_wrap")
         menu_time = get_menu_time(list_wrap).split("~")[0].split(":")
 
-        if (int(menu_time[0]) * 60 + int(menu_time[1])) - minute <= 30:
+        if 0 < (int(menu_time[0]) * 60 + int(menu_time[1])) - minute < 60:
             text = date + "\n" + get_text(list_wrap)
             tweet_id = send_tweet(text, tweet_id)
 
