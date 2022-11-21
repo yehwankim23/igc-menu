@@ -1,5 +1,6 @@
 import datetime
 import time
+import traceback
 
 import bs4
 import requests
@@ -156,6 +157,17 @@ def tweet_menu(minute):
             tweet_id = send_tweet(text, tweet_id)
 
 
+def tweet_error_message():
+    stack_traces = traceback.format_exc().splitlines()
+    message = "An error occurred. Please fix me :(\n\n"
+
+    for index in range(1, min(len(stack_traces), 7), 2):
+        message += " ".join(stack_traces[index].split(", ")[1:]) + "()\n"
+
+    message += "\n" + stack_traces[-1]
+    CLIENT.create_tweet(text=message)
+
+
 def main():
     tweet = True
     tweet_error = True
@@ -181,7 +193,7 @@ def main():
         except Exception:
             if tweet_error:
                 tweet_error = False
-                CLIENT.create_tweet(text="An error occurred. Please fix me :(")
+                tweet_error_message()
 
 
 if __name__ == "__main__":
