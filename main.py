@@ -82,26 +82,16 @@ def get_text(list_wrap):
 
     name = find(title, "div", "name")
     cell = find(name, "div", "cell")
-    text += cell.string.strip() + "\n"
-
-    time_ = find(title, "div", "time")
-    cell = find(time_, "div", "cell")
-    dl_list = find_all(cell, "dl")
-
-    dd = find(dl_list[0], "dd")
-    text += dd.string.strip() + "\n"
-
-    dd = find(dl_list[1], "dd")
-    text += "₩ " + dd.contents[1].strip() + "\n\n"
+    text += cell.string.strip() + "\n\n"
 
     con = find(list_wrap, "div", "con")
     list_ = find(con, "div", "list clearFix bar_none")
     dl_list = find_all(list_, "dl")
 
     for dl in dl_list:
-        dt = find(dl, "dt")
         dd = find(dl, "dd")
-        text += "• " + dt.string.strip() + " / " + dd.string.strip() + "\n"
+        dt = find(dl, "dt")
+        text += "• " + dd.string.strip() + " " + dt.string.strip() + "\n"
 
     return text
 
@@ -138,7 +128,7 @@ def send_tweet(text, tweet_id=None):
     return tweet_id
 
 
-def tweet_menu(minute):
+def tweet_menu(minutes):
     sub_cont = get_sub_cont()
     date = get_date(sub_cont)
     li_list = get_li_list(sub_cont)
@@ -152,14 +142,14 @@ def tweet_menu(minute):
         list_wrap = find(li, "div", "list_wrap")
         menu_time = get_menu_time(list_wrap).split("~")[0].split(":")
 
-        if 0 < (int(menu_time[0]) * 60 + int(menu_time[1])) - minute < 60:
-            text = date + "\n" + get_text(list_wrap)
+        if 0 < (int(menu_time[0]) * 60 + int(menu_time[1])) - minutes < 60:
+            text = date + " " + get_text(list_wrap)
             tweet_id = send_tweet(text, tweet_id)
 
 
 def tweet_error_message():
     stack_traces = traceback.format_exc().splitlines()
-    message = "An error occurred. Please fix me :(\n\n"
+    message = "@yehwankim23 Please fix me :(\n\n"
 
     for index in range(1, min(len(stack_traces), 7), 2):
         message += " ".join(stack_traces[index].split(", ")[1:]) + "()\n"
